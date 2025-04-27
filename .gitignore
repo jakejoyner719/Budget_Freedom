@@ -1,0 +1,6 @@
+ __pycache__/
+*.pyc
+budget.db
+*.sqlite3
+.env
+venv/
