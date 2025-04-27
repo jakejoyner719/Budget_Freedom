@@ -1,0 +1,63 @@
+{% extends 'templates_base' %}
+{% block content %}
+    <h2>Dashboard</h2>
+    <!-- Income -->
+    <h3>Household Income</h3>
+    <form method="POST">
+        <div class="mb-3">
+            <label for="income" class="form-label">Net Income</label>
+            <input type="number" step="0.01" class="form-control" id="income" name="income" value="{{ income.amount if income else '' }}" required>
+        </div>
+        <button type="submit" class="btn btn-primary">Update Income</button>
+    </form>
+
+    <!-- Fixed Expenses -->
+    <h3>Fixed Expenses</h3>
+    <form method="POST" class="mb-3">
+        <div class="row">
+            <div class="col">
+                <input type="text" class="form-control" name="fixed_expense_name" placeholder="Name (e.g., Mortgage)" required>
+            </div>
+            <div class="col">
+                <input type="number" step="0.01" class="form-control" name="fixed_expense_amount" placeholder="Amount" required>
+            </div>
+            <div class="col">
+                <button type="submit" class="btn btn-primary">Add</button>
+            </div>
+        </div>
+    </form>
+    <ul class="list-group mb-3">
+        {% for expense in fixed_expenses %}
+            <li class="list-group-item">{{ expense.name }}: ${{ expense.amount }}</li>
+        {% endfor %}
+    </ul>
+
+    <!-- Budget Categories -->
+    <h3>Budget Categories</h3>
+    <form method="POST" class="mb-3">
+        <div class="row">
+            <div class="col">
+                <input type="text" class="form-control" name="category_name" placeholder="Name (e.g., Food)" required>
+            </div>
+            <div class="col">
+                <input type="number" step="0.01" class="form-control" name="category_amount" placeholder="Budget Amount" required>
+            </div>
+            <div class="col">
+                <button type="submit" class="btn btn-primary">Add</button>
+            </div>
+        </div>
+    </form>
+    <ul class="list-group mb-3">
+        {% for category in categories %}
+            <li class="list-group-item">{{ category.name }}: ${{ category.amount }}</li>
+        {% endfor %}
+    </ul>
+
+    <!-- Expenses -->
+    <h3>Expenses</h3>
+    <ul class="list-group">
+        {% for expense in expenses %}
+            <li class="list-group-item">{{ expense.name }} ({{ expense.category.name }}): ${{ expense.amount }}</li>
+        {% endfor %}
+    </ul>
+{% endblock %}

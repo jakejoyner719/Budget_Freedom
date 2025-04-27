@@ -2,13 +2,18 @@ from flask import Flask, render_template, request, redirect, url_for, flash
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
 from models import db, User, Income, FixedExpense, BudgetCategory, Expense
+import os
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'your-secret-key'  # Replace with a secure key
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///budget.db'
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'your-secret-key')
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:///budget.db')
 db.init_app(app)
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
+
+# Initialize database tables
+with app.app_context():
+    db.create_all()
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -16,7 +21,7 @@ def load_user(user_id):
 
 @app.route('/')
 def index():
-    return render_template('index.html')
+    return render_template('templates_index')
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
@@ -31,7 +36,7 @@ def register():
         db.session.commit()
         login_user(user)
         return redirect(url_for('dashboard'))
-    return render_template('register.html')
+    return render_template('templates_register')
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -43,7 +48,7 @@ def login():
             login_user(user)
             return redirect(url_for('dashboard'))
         flash('Invalid credentials.')
-    return render_template('login.html')
+    return render_template('templates_login')
 
 @app.route('/logout')
 @login_required
@@ -81,7 +86,7 @@ def dashboard():
     fixed_expenses = FixedExpense.query.filter_by(user_id=current_user.id).all()
     categories = BudgetCategory.query.filter_by(user_id=current_user.id).all()
     expenses = Expense.query.filter_by(user_id=current_user.id).all()
-    return render_template('dashboard.html', income=income, fixed_expenses=fixed_expenses, categories=categories, expenses=expenses)
+    return render_template('templates_dashboard', income=income, fixed_expenses=fixed_expenses, categories=categories, expenses=expenses)
 
 @app.route('/add_expense', methods=['GET', 'POST'])
 @login_required
@@ -95,9 +100,7 @@ def add_expense():
         db.session.commit()
         return redirect(url_for('dashboard'))
     categories = BudgetCategory.query.filter_by(user_id=current_user.id).all()
-    return render_template('add_expense.html', categories=categories)
+    return render_template('templates_add_expense', categories=categories)
 
 if __name__ == '__main__':
-    with app.app_context():
-        db.create_all()  # Create database tables
     app.run(debug=True)
