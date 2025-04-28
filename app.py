@@ -28,6 +28,9 @@ def register():
     if request.method == 'POST':
         email = request.form['email']
         password = request.form['password']
+        if not email or not password:
+            flash('Email and password are required.')
+            return redirect(url_for('register'))
         if User.query.filter_by(email=email).first():
             flash('Email already registered.')
             return redirect(url_for('register'))
@@ -35,6 +38,7 @@ def register():
         db.session.add(user)
         db.session.commit()
         login_user(user)
+        flash('Account created! Please set up your income and budget.')
         return redirect(url_for('dashboard'))
     return render_template('templates_register')
 
@@ -43,6 +47,9 @@ def login():
     if request.method == 'POST':
         email = request.form['email']
         password = request.form['password']
+        if not email or not password:
+            flash('Email and password are required.')
+            return redirect(url_for('login'))
         user = User.query.filter_by(email=email).first()
         if user and check_password_hash(user.password, password):
             login_user(user)
@@ -54,52 +61,115 @@ def login():
 @login_required
 def logout():
     logout_user()
+    flash('Logged out successfully.')
     return redirect(url_for('index'))
 
 @app.route('/dashboard', methods=['GET', 'POST'])
 @login_required
 def dashboard():
     if request.method == 'POST':
-        # Handle income
-        if 'income' in request.form:
-            amount = float(request.form['income'])
-            income = Income.query.filter_by(user_id=current_user.id).first()
-            if income:
-                income.amount = amount
-            else:
-                income = Income(amount=amount, user_id=current_user.id)
-                db.session.add(income)
-        # Handle fixed expenses
-        elif 'fixed_expense_name' in request.form:
-            name = request.form['fixed_expense_name']
-            amount = float(request.form['fixed_expense_amount'])
-            fixed = FixedExpense(name=name, amount=amount, user_id=current_user.id)
-            db.session.add(fixed)
-        # Handle budget categories
-        elif 'category_name' in request.form:
-            name = request.form['category_name']
-            amount = float(request.form['category_amount'])
-            category = BudgetCategory(name=name, amount=amount, user_id=current_user.id)
-            db.session.add(category)
-        db.session.commit()
+        try:
+            # Handle income
+            if 'income' in request.form:
+                amount = float(request.form['income'])
+                if amount < 0:
+                    flash('Income cannot be negative.')
+                    return redirect(url_for('dashboard'))
+                income = Income.query.filter_by(user_id=current_user.id).first()
+                if income:
+                    income.amount = amount
+                else:
+                    income = Income(amount=amount, user_id=current_user.id)
+                    db.session.add(income)
+            # Handle fixed expenses
+            elif 'fixed_expense_name' in request.form:
+                name = request.form['fixed_expense_name'].strip()
+                amount = float(request.form['fixed_expense_amount'])
+                if not name:
+                    flash('Fixed expense name is required.')
+                    return redirect(url_for('dashboard'))
+                if amount < 0:
+                    flash('Fixed expense amount cannot be negative.')
+                    return redirect(url_for('dashboard'))
+                fixed = FixedExpense(name=name, amount=amount, user_id=current_user.id)
+                db.session.add(fixed)
+            # Handle budget categories
+            elif 'category_name' in request.form:
+                name = request.form['category_name'].strip()
+                amount = float(request.form['category_amount'])
+                if not name:
+                    flash('Category name is required.')
+                    return redirect(url_for('dashboard'))
+                if amount < 0:
+                    flash('Category budget cannot be negative.')
+                    return redirect(url_for('dashboard'))
+                category = BudgetCategory(name=name, amount=amount, user_id=current_user.id)
+                db.session.add(category)
+            db.session.commit()
+            flash('Data updated successfully.')
+        except ValueError:
+            flash('Invalid input. Please enter valid numbers.')
+        return redirect(url_for('dashboard'))
+
+    # Fetch data
     income = Income.query.filter_by(user_id=current_user.id).first()
     fixed_expenses = FixedExpense.query.filter_by(user_id=current_user.id).all()
     categories = BudgetCategory.query.filter_by(user_id=current_user.id).all()
     expenses = Expense.query.filter_by(user_id=current_user.id).all()
-    return render_template('templates_dashboard', income=income, fixed_expenses=fixed_expenses, categories=categories, expenses=expenses)
+
+    # Calculate remaining budget for each category
+    category_budgets = []
+    for category in categories:
+        total_expenses = sum(expense.amount for expense in category.expenses)
+        remaining = category.amount - total_expenses
+        category_budgets.append({
+            'name': category.name,
+            'budget': category.amount,
+            'spent': total_expenses,
+            'remaining': remaining
+        })
+
+    # Calculate total remaining funds for the month
+    total_income = income.amount if income else 0.0
+    total_fixed_expenses = sum(expense.amount for expense in fixed_expenses)
+    total_category_budgets = sum(category.amount for category in categories)
+    remaining_funds = total_income - (total_fixed_expenses + total_category_budgets)
+
+    return render_template('templates_dashboard',
+                          income=income,
+                          fixed_expenses=fixed_expenses,
+                          category_budgets=category_budgets,
+                          expenses=expenses,
+                          total_income=total_income,
+                          total_fixed_expenses=total_fixed_expenses,
+                          total_category_budgets=total_category_budgets,
+                          remaining_funds=remaining_funds)
 
 @app.route('/add_expense', methods=['GET', 'POST'])
 @login_required
 def add_expense():
-    if request.method == 'POST':
-        name = request.form['expense_name']
-        amount = float(request.form['expense_amount'])
-        category_id = int(request.form['category_id'])
-        expense = Expense(name=name, amount=amount, category_id=category_id, user_id=current_user.id)
-        db.session.add(expense)
-        db.session.commit()
-        return redirect(url_for('dashboard'))
     categories = BudgetCategory.query.filter_by(user_id=current_user.id).all()
+    if request.method == 'POST':
+        try:
+            name = request.form['expense_name'].strip()
+            amount = float(request.form['expense_amount'])
+            category_id = int(request.form['category_id'])
+            if not name:
+                flash('Expense name is required.')
+                return redirect(url_for('add_expense'))
+            if amount < 0:
+                flash('Expense amount cannot be negative.')
+                return redirect(url_for('add_expense'))
+            if not any(category.id == category_id for category in categories):
+                flash('Invalid category selected.')
+                return redirect(url_for('add_expense'))
+            expense = Expense(name=name, amount=amount, category_id=category_id, user_id=current_user.id)
+            db.session.add(expense)
+            db.session.commit()
+            flash('Expense added successfully.')
+            return redirect(url_for('dashboard'))
+        except ValueError:
+            flash('Invalid input. Please enter a valid amount.')
     return render_template('templates_add_expense', categories=categories)
 
 if __name__ == '__main__':

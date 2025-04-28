@@ -1,63 +1,142 @@
 {% extends 'templates_base' %}
 {% block content %}
     <h2>Dashboard</h2>
+
+    <!-- Monthly Overview -->
+    <h3>Monthly Budget Overview</h3>
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-3">
+                    <strong>Total Income:</strong> ${{ "%.2f" | format(total_income) }}
+                </div>
+                <div class="col-md-3">
+                    <strong>Fixed Expenses:</strong> ${{ "%.2f" | format(total_fixed_expenses) }}
+                </div>
+                <div class="col-md-3">
+                    <strong>Budget Allocated:</strong> ${{ "%.2f" | format(total_category_budgets) }}
+                </div>
+                <div class="col-md-3">
+                    <strong>Remaining Funds:</strong>
+                    <span class="{{ 'text-success' if remaining_funds >= 0 else 'text-danger' }}">
+                        ${{ "%.2f" | format(remaining_funds) }}
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Income -->
-    <h3>Household Income</h3>
-    <form method="POST">
+    <h3>Monthly Household Income</h3>
+    <form method="POST" class="mb-4">
         <div class="mb-3">
-            <label for="income" class="form-label">Net Income</label>
-            <input type="number" step="0.01" class="form-control" id="income" name="income" value="{{ income.amount if income else '' }}" required>
+            <label for="income" class="form-label">Net Monthly Income ($)</label>
+            <input type="number" step="0.01" class="form-control" id="income" name="income" value="{{ income.amount if income else '' }}" placeholder="e.g., 5000.00" required>
         </div>
         <button type="submit" class="btn btn-primary">Update Income</button>
     </form>
 
     <!-- Fixed Expenses -->
-    <h3>Fixed Expenses</h3>
-    <form method="POST" class="mb-3">
-        <div class="row">
-            <div class="col">
+    <h3>Monthly Fixed Expenses</h3>
+    <form method="POST" class="mb-4">
+        <div class="row g-2">
+            <div class="col-md-4">
                 <input type="text" class="form-control" name="fixed_expense_name" placeholder="Name (e.g., Mortgage)" required>
             </div>
-            <div class="col">
-                <input type="number" step="0.01" class="form-control" name="fixed_expense_amount" placeholder="Amount" required>
+            <div class="col-md-4">
+                <input type="number" step="0.01" class="form-control" name="fixed_expense_amount" placeholder="Amount (e.g., 1200.00)" required>
             </div>
-            <div class="col">
-                <button type="submit" class="btn btn-primary">Add</button>
+            <div class="col-md-4">
+                <button type="submit" class="btn btn-primary">Add Fixed Expense</button>
             </div>
         </div>
     </form>
-    <ul class="list-group mb-3">
-        {% for expense in fixed_expenses %}
-            <li class="list-group-item">{{ expense.name }}: ${{ expense.amount }}</li>
-        {% endfor %}
-    </ul>
+    {% if fixed_expenses %}
+        <table class="table table-striped mb-4">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Amount ($)</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for expense in fixed_expenses %}
+                    <tr>
+                        <td>{{ expense.name }}</td>
+                        <td>{{ "%.2f" | format(expense.amount) }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p>No fixed expenses added yet.</p>
+    {% endif %}
 
     <!-- Budget Categories -->
     <h3>Budget Categories</h3>
-    <form method="POST" class="mb-3">
-        <div class="row">
-            <div class="col">
+    <form method="POST" class="mb-4">
+        <div class="row g-2">
+            <div class="col-md-4">
                 <input type="text" class="form-control" name="category_name" placeholder="Name (e.g., Food)" required>
             </div>
-            <div class="col">
-                <input type="number" step="0.01" class="form-control" name="category_amount" placeholder="Budget Amount" required>
+            <div class="col-md-4">
+                <input type="number" step="0.01" class="form-control" name="category_amount" placeholder="Monthly Budget (e.g., 300.00)" required>
             </div>
-            <div class="col">
-                <button type="submit" class="btn btn-primary">Add</button>
+            <div class="col-md-4">
+                <button type="submit" class="btn btn-primary">Add Category</button>
             </div>
         </div>
     </form>
-    <ul class="list-group mb-3">
-        {% for category in categories %}
-            <li class="list-group-item">{{ category.name }}: ${{ category.amount }}</li>
-        {% endfor %}
-    </ul>
+    {% if category_budgets %}
+        <table class="table table-striped mb-4">
+            <thead>
+                <tr>
+                    <th>Category</th>
+                    <th>Budget ($)</th>
+                    <th>Spent ($)</th>
+                    <th>Remaining ($)</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for budget in category_budgets %}
+                    <tr>
+                        <td>{{ budget.name }}</td>
+                        <td>{{ "%.2f" | format(budget.budget) }}</td>
+                        <td>{{ "%.2f" | format(budget.spent) }}</td>
+                        <td class="{{ 'text-success' if budget.remaining >= 0 else 'text-danger' }}">
+                            {{ "%.2f" | format(budget.remaining) }}
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p>No budget categories added yet. Add categories to track your spending.</p>
+    {% endif %}
 
     <!-- Expenses -->
-    <h3>Expenses</h3>
-    <ul class="list-group">
-        {% for expense in expenses %}
-            <li class="list-group-item">{{ expense.name }} ({{ expense.category.name }}): ${{ expense.amount }}</li>
-        {% endfor %}
-    </ul>
+    <h3>Non-Fixed Expenses (Purchases)</h3>
+    {% if expenses %}
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Category</th>
+                    <th>Amount ($)</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for expense in expenses %}
+                    <tr>
+                        <td>{{ expense.name }}</td>
+                        <td>{{ expense.category.name }}</td>
+                        <td>{{ "%.2f" | format(expense.amount) }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p>No expenses added yet. Use the "Add Expense" page to track purchases.</p>
+    {% endif %}
+    <a href="{{ url_for('add_expense') }}" class="btn btn-primary mt-3">Add New Purchase</a>
 {% endblock %}
