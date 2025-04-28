@@ -159,4 +159,81 @@ def add_expense():
     ]
     if request.method == 'POST':
         try:
-            name = request.form['expense
+            name = request.form['expense_name'].strip()
+            amount = float(request.form['expense_amount'])
+            category_id = int(request.form['category_id'])
+            if not name:
+                flash('Expense name is required.')
+                return redirect(url_for('add_expense'))
+            if amount < 0:
+                flash('Expense amount cannot be negative.')
+                return redirect(url_for('add_expense'))
+            if not any(category.id == category_id for category in categories):
+                flash('Invalid category selected.')
+                return redirect(url_for('add_expense'))
+            expense = Expense(name=name, amount=amount, category_id=category_id, user_id=current_user.id)
+            db.session.add(expense)
+            db.session.commit()
+            flash('Expense added successfully.')
+            return redirect(url_for('dashboard'))
+        except ValueError:
+            flash('Invalid input. Please enter a valid amount.')
+    if not categories:
+        flash('Please add a budget category first.')
+        return redirect(url_for('dashboard'))
+    return render_template('templates_add_expense', categories=categories_with_remaining)
+
+@app.route('/edit_expense/<int:id>', methods=['GET', 'POST'])
+@login_required
+def edit_expense(id):
+    expense = Expense.query.get_or_404(id)
+    if expense.user_id != current_user.id:
+        flash('You can only edit your own expenses.')
+        return redirect(url_for('dashboard'))
+    categories = BudgetCategory.query.filter_by(user_id=current_user.id).all()
+    categories_with_remaining = [
+        {
+            'id': category.id,
+            'name': category.name,
+            'remaining': category.amount - sum(expense.amount for expense in category.expenses.all()) if category.expenses else category.amount
+        }
+        for category in categories
+    ]
+    if request.method == 'POST':
+        try:
+            name = request.form['expense_name'].strip()
+            amount = float(request.form['expense_amount'])
+            category_id = int(request.form['category_id'])
+            if not name:
+                flash('Expense name is required.')
+                return redirect(url_for('edit_expense', id=id))
+            if amount < 0:
+                flash('Expense amount cannot be negative.')
+                return redirect(url_for('edit_expense', id=id))
+            if not any(category.id == category_id for category in categories):
+                flash('Invalid category selected.')
+                return redirect(url_for('edit_expense', id=id))
+            expense.name = name
+            expense.amount = amount
+            expense.category_id = category_id
+            db.session.commit()
+            flash('Expense updated successfully.')
+            return redirect(url_for('dashboard'))
+        except ValueError:
+            flash('Invalid input. Please enter a valid amount.')
+    return render_template('templates_edit_expense', expense=expense, categories=categories_with_remaining)
+
+@app.route('/delete_expense/<int:id>', methods=['POST'])
+@login_required
+def delete_expense(id):
+    expense = Expense.query.get_or_404(id)
+    if expense.user_id != current_user.id:
+        flash('You can only delete your own expenses.')
+        return redirect(url_for('dashboard'))
+    db.session.delete(expense)
+    db.session.commit()
+    flash('Expense deleted successfully.')
+    return redirect(url_for('dashboard'))
+
+if __name__ == '__main__':
+    app.run(debug=True)
