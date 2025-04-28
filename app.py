@@ -123,6 +123,7 @@ def dashboard():
         total_expenses = sum(expense.amount for expense in category.expenses.all()) if category.expenses else 0.0
         remaining = category.amount - total_expenses
         category_budgets.append({
+            'id': category.id,  # Added for edit/delete
             'name': category.name,
             'budget': category.amount,
             'spent': total_expenses,
@@ -233,6 +234,85 @@ def delete_expense(id):
     db.session.delete(expense)
     db.session.commit()
     flash('Expense deleted successfully.')
+    return redirect(url_for('dashboard'))
+
+@app.route('/edit_fixed_expense/<int:id>', methods=['GET', 'POST'])
+@login_required
+def edit_fixed_expense(id):
+    fixed_expense = FixedExpense.query.get_or_404(id)
+    if fixed_expense.user_id != current_user.id:
+        flash('You can only edit your own fixed expenses.')
+        return redirect(url_for('dashboard'))
+    if request.method == 'POST':
+        try:
+            name = request.form['fixed_expense_name'].strip()
+            amount = float(request.form['fixed_expense_amount'])
+            if not name:
+                flash('Fixed expense name is required.')
+                return redirect(url_for('edit_fixed_expense', id=id))
+            if amount < 0:
+                flash('Fixed expense amount cannot be negative.')
+                return redirect(url_for('edit_fixed_expense', id=id))
+            fixed_expense.name = name
+            fixed_expense.amount = amount
+            db.session.commit()
+            flash('Fixed expense updated successfully.')
+            return redirect(url_for('dashboard'))
+        except ValueError:
+            flash('Invalid input. Please enter a valid amount.')
+    return render_template('templates_edit_fixed_expense', fixed_expense=fixed_expense)
+
+@app.route('/delete_fixed_expense/<int:id>', methods=['POST'])
+@login_required
+def delete_fixed_expense(id):
+    fixed_expense = FixedExpense.query.get_or_404(id)
+    if fixed_expense.user_id != current_user.id:
+        flash('You can only delete your own fixed expenses.')
+        return redirect(url_for('dashboard'))
+    db.session.delete(fixed_expense)
+    db.session.commit()
+    flash('Fixed expense deleted successfully.')
+    return redirect(url_for('dashboard'))
+
+@app.route('/edit_category/<int:id>', methods=['GET', 'POST'])
+@login_required
+def edit_category(id):
+    category = BudgetCategory.query.get_or_404(id)
+    if category.user_id != current_user.id:
+        flash('You can only edit your own categories.')
+        return redirect(url_for('dashboard'))
+    if request.method == 'POST':
+        try:
+            name = request.form['category_name'].strip()
+            amount = float(request.form['category_amount'])
+            if not name:
+                flash('Category name is required.')
+                return redirect(url_for('edit_category', id=id))
+            if amount < 0:
+                flash('Category budget cannot be negative.')
+                return redirect(url_for('edit_category', id=id))
+            category.name = name
+            category.amount = amount
+            db.session.commit()
+            flash('Category updated successfully.')
+            return redirect(url_for('dashboard'))
+        except ValueError:
+            flash('Invalid input. Please enter a valid amount.')
+    return render_template('templates_edit_category', category=category)
+
+@app.route('/delete_category/<int:id>', methods=['POST'])
+@login_required
+def delete_category(id):
+    category = BudgetCategory.query.get_or_404(id)
+    if category.user_id != current_user.id:
+        flash('You can only delete your own categories.')
+        return redirect(url_for('dashboard'))
+    if category.expenses.all():
+        flash('Cannot delete category with associated expenses.')
+        return redirect(url_for('dashboard'))
+    db.session.delete(category)
+    db.session.commit()
+    flash('Category deleted successfully.')
     return redirect(url_for('dashboard'))
 
 if __name__ == '__main__':
