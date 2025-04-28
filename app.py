@@ -120,7 +120,7 @@ def dashboard():
     # Calculate remaining budget for each category
     category_budgets = []
     for category in categories:
-        total_expenses = sum(expense.amount for expense in category.expenses)
+        total_expenses = sum(expense.amount for expense in category.expenses.all()) if category.expenses else 0.0
         remaining = category.amount - total_expenses
         category_budgets.append({
             'name': category.name,
@@ -149,6 +149,15 @@ def dashboard():
 @login_required
 def add_expense():
     categories = BudgetCategory.query.filter_by(user_id=current_user.id).all()
+    # Prepare categories with remaining budget
+    categories_with_remaining = [
+        {
+            'id': category.id,
+            'name': category.name,
+            'remaining': category.amount - sum(expense.amount for expense in category.expenses.all()) if category.expenses else category.amount
+        }
+        for category in categories
+    ]
     if request.method == 'POST':
         try:
             name = request.form['expense_name'].strip()
@@ -170,7 +179,10 @@ def add_expense():
             return redirect(url_for('dashboard'))
         except ValueError:
             flash('Invalid input. Please enter a valid amount.')
-    return render_template('templates_add_expense', categories=categories)
+    if not categories:
+        flash('Please add a budget category first.')
+        return redirect(url_for('dashboard'))
+    return render_template('templates_add_expense', categories=categories_with_remaining)
 
 if __name__ == '__main__':
     app.run(debug=True)
