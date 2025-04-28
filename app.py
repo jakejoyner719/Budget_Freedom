@@ -149,7 +149,6 @@ def dashboard():
 @login_required
 def add_expense():
     categories = BudgetCategory.query.filter_by(user_id=current_user.id).all()
-    # Prepare categories with remaining budget
     categories_with_remaining = [
         {
             'id': category.id,
@@ -160,29 +159,4 @@ def add_expense():
     ]
     if request.method == 'POST':
         try:
-            name = request.form['expense_name'].strip()
-            amount = float(request.form['expense_amount'])
-            category_id = int(request.form['category_id'])
-            if not name:
-                flash('Expense name is required.')
-                return redirect(url_for('add_expense'))
-            if amount < 0:
-                flash('Expense amount cannot be negative.')
-                return redirect(url_for('add_expense'))
-            if not any(category.id == category_id for category in categories):
-                flash('Invalid category selected.')
-                return redirect(url_for('add_expense'))
-            expense = Expense(name=name, amount=amount, category_id=category_id, user_id=current_user.id)
-            db.session.add(expense)
-            db.session.commit()
-            flash('Expense added successfully.')
-            return redirect(url_for('dashboard'))
-        except ValueError:
-            flash('Invalid input. Please enter a valid amount.')
-    if not categories:
-        flash('Please add a budget category first.')
-        return redirect(url_for('dashboard'))
-    return render_template('templates_add_expense', categories=categories_with_remaining)
-
-if __name__ == '__main__':
-    app.run(debug=True)
+            name = request.form['expense
