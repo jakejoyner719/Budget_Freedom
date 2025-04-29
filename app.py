@@ -7,6 +7,7 @@ import os
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'your-secret-key')
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:///budget.db')
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db.init_app(app)
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
@@ -123,7 +124,7 @@ def dashboard():
         total_expenses = sum(expense.amount for expense in category.expenses.all()) if category.expenses else 0.0
         remaining = category.amount - total_expenses
         category_budgets.append({
-            'id': category.id,  # Added for edit/delete
+            'id': category.id,
             'name': category.name,
             'budget': category.amount,
             'spent': total_expenses,
