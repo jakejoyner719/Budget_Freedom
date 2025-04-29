@@ -121,7 +121,7 @@ def dashboard():
     # Calculate remaining budget for each category
     category_budgets = []
     for category in categories:
-        total_expenses = sum(expense.amount for expense in category.expenses.all()) if category.expenses else 0.0
+        total_expenses = sum(expense.amount for expense in category.expenses) if category.expenses else 0.0
         remaining = category.amount - total_expenses
         category_budgets.append({
             'id': category.id,
@@ -138,14 +138,14 @@ def dashboard():
     remaining_funds = total_income - (total_fixed_expenses + total_category_budgets)
 
     return render_template('templates_dashboard',
-                          income=income,
-                          fixed_expenses=fixed_expenses,
-                          category_budgets=category_budgets,
-                          expenses=expenses,
-                          total_income=total_income,
-                          total_fixed_expenses=total_fixed_expenses,
-                          total_category_budgets=total_category_budgets,
-                          remaining_funds=remaining_funds)
+                         income=income,
+                         fixed_expenses=fixed_expenses,
+                         category_budgets=category_budgets,
+                         expenses=expenses,
+                         total_income=total_income,
+                         total_fixed_expenses=total_fixed_expenses,
+                         total_category_budgets=total_category_budgets,
+                         remaining_funds=remaining_funds)
 
 @app.route('/add_expense', methods=['GET', 'POST'])
 @login_required
@@ -155,7 +155,7 @@ def add_expense():
         {
             'id': category.id,
             'name': category.name,
-            'remaining': category.amount - sum(expense.amount for expense in category.expenses.all()) if category.expenses else category.amount
+            'remaining': category.amount - sum(expense.amount for expense in category.expenses) if category.expenses else category.amount
         }
         for category in categories
     ]
@@ -197,7 +197,7 @@ def edit_expense(id):
         {
             'id': category.id,
             'name': category.name,
-            'remaining': category.amount - sum(expense.amount for expense in category.expenses.all()) if category.expenses else category.amount
+            'remaining': category.amount - sum(expense.amount for expense in category.expenses) if category.expenses else category.amount
         }
         for category in categories
     ]
@@ -308,7 +308,7 @@ def delete_category(id):
     if category.user_id != current_user.id:
         flash('You can only delete your own categories.')
         return redirect(url_for('dashboard'))
-    if category.expenses.all():
+    if category.expenses:
         flash('Cannot delete category with associated expenses.')
         return redirect(url_for('dashboard'))
     db.session.delete(category)
