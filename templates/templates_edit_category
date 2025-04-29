@@ -1,0 +1,17 @@
+{% extends 'templates_base' %}
+{% block content %}
+    <h2>Edit Budget Category</h2>
+    <p>Update the details of your budget category.</p>
+    <form method="POST" class="mb-4">
+        <div class="mb-3">
+            <label for="category_name" class="form-label">Category Name</label>
+            <input type="text" class="form-control" id="category_name" name="category_name" value="{{ category.name }}" placeholder="e.g., Food" required>
+        </div>
+        <div class="mb-3">
+            <label for="category_amount" class="form-label">Monthly Budget ($)</label>
+            <input type="number" step="0.01" class="form-control" id="category_amount" name="category_amount" value="{{ category.amount }}" placeholder="e.g., 300.00" required>
+        </div>
+        <button type="submit" class="btn btn-primary">Update Category</button>
+        <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">Cancel</a>
+    </form>
+{% endblock %}

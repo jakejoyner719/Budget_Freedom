@@ -1,7 +1,7 @@
 {% extends 'templates_base' %}
 {% block content %}
     <h2>Edit Fixed Expense</h2>
-    <p>Update the details of your monthly fixed expense.</p>
+    <p>Update the details of your fixed expense.</p>
     <form method="POST" class="mb-4">
         <div class="mb-3">
             <label for="fixed_expense_name" class="form-label">Expense Name</label>

@@ -1,8 +1,0 @@
-{% extends 'base.html' %}
-{% block content %}
-    <h1>Welcome to the Budget App</h1>
-    <p>Track your income and expenses with ease.</p>
-    {% if not current_user.is_authenticated %}
-        <a href="{{ url_for('register') }}" class="btn btn-primary">Get Started</a>
-    {% endif %}
-{% endblock %}

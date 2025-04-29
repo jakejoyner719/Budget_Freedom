@@ -1,23 +1,25 @@
 {% extends 'templates_base' %}
 {% block content %}
     <h2>Add Expense</h2>
-    <form method="POST">
+    <p>Add a new expense to one of your budget categories.</p>
+    <form method="POST" class="mb-4">
         <div class="mb-3">
             <label for="expense_name" class="form-label">Expense Name</label>
-            <input type="text" class="form-control" id="expense_name" name="expense_name" required>
+            <input type="text" class="form-control" id="expense_name" name="expense_name" placeholder="e.g., Groceries" required>
         </div>
         <div class="mb-3">
-            <label for="expense_amount" class="form-label">Amount</label>
-            <input type="number" step="0.01" class="form-control" id="expense_amount" name="expense_amount" required>
+            <label for="expense_amount" class="form-label">Amount ($)</label>
+            <input type="number" step="0.01" class="form-control" id="expense_amount" name="expense_amount" placeholder="e.g., 50.00" required>
         </div>
         <div class="mb-3">
             <label for="category_id" class="form-label">Category</label>
-            <select class="form-control" id="category_id" name="category_id" required>
+            <select class="form-select" id="category_id" name="category_id" required>
                 {% for category in categories %}
-                    <option value="{{ category.id }}">{{ category.name }}</option>
+                    <option value="{{ category.id }}">{{ category.name }} (Remaining: ${{ "%.2f"|format(category.remaining) }})</option>
                 {% endfor %}
             </select>
         </div>
         <button type="submit" class="btn btn-primary">Add Expense</button>
+        <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">Cancel</a>
     </form>
 {% endblock %}

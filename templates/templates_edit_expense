@@ -1,10 +1,10 @@
 {% extends 'templates_base' %}
 {% block content %}
-    <h2>Edit Purchase</h2>
-    <p>Update the details of your non-fixed expense.</p>
+    <h2>Edit Expense</h2>
+    <p>Update the details of your expense.</p>
     <form method="POST" class="mb-4">
         <div class="mb-3">
-            <label for="expense_name" class="form-label">Purchase Name</label>
+            <label for="expense_name" class="form-label">Expense Name</label>
             <input type="text" class="form-control" id="expense_name" name="expense_name" value="{{ expense.name }}" placeholder="e.g., Groceries" required>
         </div>
         <div class="mb-3">
@@ -12,20 +12,16 @@
             <input type="number" step="0.01" class="form-control" id="expense_amount" name="expense_amount" value="{{ expense.amount }}" placeholder="e.g., 50.00" required>
         </div>
         <div class="mb-3">
-            <label for="category_id" class="form-label">Budget Category</label>
-            <select class="form-control" id="category_id" name="category_id" required>
-                <option value="" disabled>Select a category</option>
+            <label for="category_id" class="form-label">Category</label>
+            <select class="form-select" id="category_id" name="category_id" required>
                 {% for category in categories %}
                     <option value="{{ category.id }}" {% if category.id == expense.category_id %}selected{% endif %}>
-                        {{ category.name }} (${{ "%.2f" | format(category.remaining) }} remaining)
+                        {{ category.name }} (Remaining: ${{ "%.2f"|format(category.remaining) }})
                     </option>
                 {% endfor %}
             </select>
         </div>
-        <button type="submit" class="btn btn-primary">Update Purchase</button>
+        <button type="submit" class="btn btn-primary">Update Expense</button>
         <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">Cancel</a>
     </form>
-    {% if not categories %}
-        <p class="text-warning">No budget categories available. Please add categories on the dashboard first.</p>
-    {% endif %}
 {% endblock %}
