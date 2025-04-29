@@ -316,6 +316,42 @@ def delete_category(id):
     flash('Category deleted successfully.')
     return redirect(url_for('dashboard'))
 
+@app.route('/change_password', methods=['GET', 'POST'])
+@login_required
+def change_password():
+    if request.method == 'POST':
+        current_password = request.form['current_password']
+        new_password = request.form['new_password']
+        confirm_password = request.form['confirm_password']
+
+        # Validate inputs
+        if not current_password or not new_password or not confirm_password:
+            flash('All fields are required.')
+            return redirect(url_for('change_password'))
+
+        # Verify current password
+        if not check_password_hash(current_user.password, current_password):
+            flash('Current password is incorrect.')
+            return redirect(url_for('change_password'))
+
+        # Check if new password matches confirmation
+        if new_password != confirm_password:
+            flash('New password and confirmation do not match.')
+            return redirect(url_for('change_password'))
+
+        # Check if new password is different from the current one
+        if check_password_hash(current_user.password, new_password):
+            flash('New password must be different from the current password.')
+            return redirect(url_for('change_password'))
+
+        # Update the password
+        current_user.password = generate_password_hash(new_password)
+        db.session.commit()
+        flash('Password changed successfully.')
+        return redirect(url_for('dashboard'))
+
+    return render_template('templates_change_password')
+
 @app.route('/clear_expenses', methods=['POST'])
 @login_required
 def clear_expenses():
