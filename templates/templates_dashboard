@@ -169,4 +169,12 @@
             {% endif %}
         </div>
     </div>
+
+    <!-- Clear Purchases Button -->
+    <div class="mt-4">
+        <form action="{{ url_for('clear_expenses') }}" method="POST">
+            <button type="submit" class="btn btn-warning" onclick="return confirm('Are you sure you want to clear all non-fixed expenses?')">Clear Purchases to Start New Month</button>
+        </form>
+    </div>
+
 {% endblock %}

@@ -316,5 +316,14 @@ def delete_category(id):
     flash('Category deleted successfully.')
     return redirect(url_for('dashboard'))
 
+@app.route('/clear_expenses', methods=['POST'])
+@login_required
+def clear_expenses():
+    # Delete all non-fixed expenses for the current user
+    Expense.query.filter_by(user_id=current_user.id).delete()
+    db.session.commit()
+    flash('All non-fixed expenses have been cleared.')
+    return redirect(url_for('dashboard'))
+
 if __name__ == '__main__':
     app.run(debug=True)

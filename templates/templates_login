@@ -1,5 +1,6 @@
 {% extends 'templates_base' %}
 {% block content %}
+    <h1 class="text-center" style="font-size: 3rem; margin-bottom: 1rem;">Budget Freedom</h1>
     <h2>Login</h2>
     <p>Access your budget dashboard.</p>
     <form method="POST" class="mb-4">
