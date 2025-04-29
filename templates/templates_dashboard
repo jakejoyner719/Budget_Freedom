@@ -1,77 +1,26 @@
 {% extends 'templates_base' %}
 {% block content %}
+    <!-- Summary Banner (Top) -->
+    <div class="alert alert-info text-center mb-4" style="font-size: 1.2rem;">
+        <strong>Remaining Funds for the Month:</strong>
+        <span style="color: {{ 'green' if remaining_funds >= 0 else 'red' }};">
+            ${{ "%.2f"|format(remaining_funds) }}
+        </span>
+        <form action="{{ url_for('clear_expenses') }}" method="POST" style="display:inline; margin-left: 1rem;">
+            <button type="submit" class="btn btn-warning btn-sm" onclick="return confirm('Are you sure you want to clear all non-fixed expenses?')">Clear Purchases to Start New Month</button>
+        </form>
+    </div>
+
     <h1>Dashboard</h1>
     <p>Welcome, {{ current_user.email }}! Manage your monthly budget below.</p>
-
-    <!-- Income -->
-    <div class="card mb-4">
-        <div class="card-header">Monthly Income</div>
-        <div class="card-body">
-            <form method="POST" class="mb-3">
-                <div class="mb-3">
-                    <label for="income" class="form-label">Income ($)</label>
-                    <input type="number" step="0.01" class="form-control" id="income" name="income" value="{{ income.amount if income else '' }}" placeholder="e.g., 5000.00" required>
-                </div>
-                <button type="submit" class="btn btn-primary">Set Income</button>
-            </form>
-            <p><strong>Total Income:</strong> ${{ "%.2f"|format(total_income) }}</p>
-        </div>
-    </div>
-
-    <!-- Fixed Expenses -->
-    <div class="card mb-4">
-        <div class="card-header">Monthly Fixed Expenses</div>
-        <div class="card-body">
-            <form method="POST" class="mb-3">
-                <div class="row">
-                    <div class="col-md-6 mb-3">
-                        <label for="fixed_expense_name" class="form-label">Expense Name</label>
-                        <input type="text" class="form-control" id="fixed_expense_name" name="fixed_expense_name" placeholder="e.g., Mortgage" required>
-                    </div>
-                    <div class="col-md-4 mb-3">
-                        <label for="fixed_expense_amount" class="form-label">Amount ($)</label>
-                        <input type="number" step="0.01" class="form-control" id="fixed_expense_amount" name="fixed_expense_amount" placeholder="e.g., 1200.00" required>
-                    </div>
-                    <div class="col-md-2 mb-3 d-flex align-items-end">
-                        <button type="submit" class="btn btn-primary w-100">Add</button>
-                    </div>
-                </div>
-            </form>
-            {% if fixed_expenses %}
-                <table class="table table-striped">
-                    <thead>
-                        <tr>
-                            <th>Name</th>
-                            <th>Amount ($)</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for expense in fixed_expenses %}
-                            <tr>
-                                <td>{{ expense.name }}</td>
-                                <td>{{ "%.2f"|format(expense.amount) }}</td>
-                                <td>
-                                    <a href="{{ url_for('edit_fixed_expense', id=expense.id) }}" class="btn btn-sm btn-primary">Edit</a>
-                                    <form action="{{ url_for('delete_fixed_expense', id=expense.id) }}" method="POST" style="display:inline;">
-                                        <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure you want to delete this fixed expense?')">Delete</button>
-                                    </form>
-                                </td>
-                            </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-                <p><strong>Total Fixed Expenses:</strong> ${{ "%.2f"|format(total_fixed_expenses) }}</p>
-            {% else %}
-                <p>No fixed expenses added yet.</p>
-            {% endif %}
-        </div>
-    </div>
 
     <!-- Budget Categories -->
     <div class="card mb-4">
         <div class="card-header">Budget Categories</div>
         <div class="card-body">
+            <div class="mb-3">
+                <a href="{{ url_for('add_expense') }}" class="btn btn-primary">Add Expense</a>
+            </div>
             <form method="POST" class="mb-3">
                 <div class="row">
                     <div class="col-md-6 mb-3">
@@ -126,7 +75,6 @@
     <div class="card mb-4">
         <div class="card-header">Non-Fixed Expenses</div>
         <div class="card-body">
-            <a href="{{ url_for('add_expense') }}" class="btn btn-primary mb-3">Add Expense</a>
             {% if expenses %}
                 <table class="table table-striped">
                     <thead>
@@ -159,21 +107,79 @@
         </div>
     </div>
 
-    <!-- Summary -->
-    <div class="card">
-        <div class="card-header">Summary</div>
+    <!-- Fixed Expenses -->
+    <div class="card mb-4">
+        <div class="card-header">Monthly Fixed Expenses</div>
         <div class="card-body">
-            <p><strong>Remaining Funds for the Month:</strong> ${{ "%.2f"|format(remaining_funds) }}</p>
-            {% if remaining_funds < 0 %}
-                <p class="text-danger">Warning: You are over budget!</p>
+            <form method="POST" class="mb-3">
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="fixed_expense_name" class="form-label">Expense Name</label>
+                        <input type="text" class="form-control" id="fixed_expense_name" name="fixed_expense_name" placeholder="e.g., Mortgage" required>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label for="fixed_expense_amount" class="form-label">Amount ($)</label>
+                        <input type="number" step="0.01" class="form-control" id="fixed_expense_amount" name="fixed_expense_amount" placeholder="e.g., 1200.00" required>
+                    </div>
+                    <div class="col-md-2 mb-3 d-flex align-items-end">
+                        <button type="submit" class="btn btn-primary w-100">Add</button>
+                    </div>
+                </div>
+            </form>
+            {% if fixed_expenses %}
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Amount ($)</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for expense in fixed_expenses %}
+                            <tr>
+                                <td>{{ expense.name }}</td>
+                                <td>{{ "%.2f"|format(expense.amount) }}</td>
+                                <td>
+                                    <a href="{{ url_for('edit_fixed_expense', id=expense.id) }}" class="btn btn-sm btn-primary">Edit</a>
+                                    <form action="{{ url_for('delete_fixed_expense', id=expense.id) }}" method="POST" style="display:inline;">
+                                        <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure you want to delete this fixed expense?')">Delete</button>
+                                    </form>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                <p><strong>Total Fixed Expenses:</strong> ${{ "%.2f"|format(total_fixed_expenses) }}</p>
+            {% else %}
+                <p>No fixed expenses added yet.</p>
             {% endif %}
         </div>
     </div>
 
-    <!-- Clear Purchases Button -->
-    <div class="mt-4">
-        <form action="{{ url_for('clear_expenses') }}" method="POST">
-            <button type="submit" class="btn btn-warning" onclick="return confirm('Are you sure you want to clear all non-fixed expenses?')">Clear Purchases to Start New Month</button>
+    <!-- Income -->
+    <div class="card mb-4">
+        <div class="card-header">Monthly Income</div>
+        <div class="card-body">
+            <form method="POST" class="mb-3">
+                <div class="mb-3">
+                    <label for="income" class="form-label">Income ($)</label>
+                    <input type="number" step="0.01" class="form-control" id="income" name="income" value="{{ income.amount if income else '' }}" placeholder="e.g., 5000.00" required>
+                </div>
+                <button type="submit" class="btn btn-primary">Set Income</button>
+            </form>
+            <p><strong>Total Income:</strong> ${{ "%.2f"|format(total_income) }}</p>
+        </div>
+    </div>
+
+    <!-- Summary Banner (Bottom) -->
+    <div class="alert alert-info text-center mt-4" style="font-size: 1.2rem;">
+        <strong>Remaining Funds for the Month:</strong>
+        <span style="color: {{ 'green' if remaining_funds >= 0 else 'red' }};">
+            ${{ "%.2f"|format(remaining_funds) }}
+        </span>
+        <form action="{{ url_for('clear_expenses') }}" method="POST" style="display:inline; margin-left: 1rem;">
+            <button type="submit" class="btn btn-warning btn-sm" onclick="return confirm('Are you sure you want to clear all non-fixed expenses?')">Clear Purchases to Start New Month</button>
         </form>
     </div>
 
