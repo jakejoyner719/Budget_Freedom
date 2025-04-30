@@ -14,5 +14,6 @@
         </div>
         <button type="submit" class="btn btn-primary">Login</button>
     </form>
+    <p>Forgot your password? <a href="{{ url_for('reset_password_request') }}">Forgot my password</a></p>
     <p>Don't have an account? <a href="{{ url_for('register') }}">Register</a></p>
 {% endblock %}

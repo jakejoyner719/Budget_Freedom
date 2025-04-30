@@ -3,6 +3,11 @@ from flask_login import LoginManager, login_user, logout_user, login_required, c
 from werkzeug.security import generate_password_hash, check_password_hash
 from models import db, User, Income, FixedExpense, BudgetCategory, Expense
 import os
+from datetime import datetime, timedelta
+import secrets
+import sendgrid
+from sendgrid.helpers.mail import Mail
+from urllib.parse import urlencode
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'your-secret-key')
@@ -12,6 +17,10 @@ db.init_app(app)
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
 
+# Initialize SendGrid
+sg = sendgrid.SendGridAPIClient(os.environ.get('SENDGRID_API_KEY'))
+SENDER_EMAIL = os.environ.get('SENDER_EMAIL')
+
 # Initialize database tables
 with app.app_context():
     db.create_all()
@@ -19,6 +28,34 @@ with app.app_context():
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
+
+def generate_reset_token():
+    return secrets.token_urlsafe(32)
+
+def send_reset_email(user):
+    token = generate_reset_token()
+    user.reset_token = token
+    user.reset_token_expiration = datetime.utcnow() + timedelta(hours=1)  # Token expires in 1 hour
+    db.session.commit()
+
+    reset_url = url_for('reset_password', token=token, _external=True)
+    message = Mail(
+        from_email=SENDER_EMAIL,
+        to_emails=user.email,
+        subject='Password Reset Request for Budget Freedom',
+        html_content=f'''
+        <p>You have requested to reset your password for Budget Freedom.</p>
+        <p>Click the link below to reset your password:</p>
+        <p><a href="{reset_url}">{reset_url}</a></p>
+        <p>This link will expire in 1 hour. If you did not request a password reset, please ignore this email.</p>
+        '''
+    )
+    try:
+        response = sg.send(message)
+        return True
+    except Exception as e:
+        print(f"Error sending email: {e}")
+        return False
 
 @app.route('/')
 def index():
@@ -351,6 +388,57 @@ def change_password():
         return redirect(url_for('dashboard'))
 
     return render_template('templates_change_password')
+
+@app.route('/reset_password_request', methods=['GET', 'POST'])
+def reset_password_request():
+    if current_user.is_authenticated:
+        return redirect(url_for('dashboard'))
+    if request.method == 'POST':
+        email = request.form['email']
+        user = User.query.filter_by(email=email).first()
+        if user:
+            if send_reset_email(user):
+                flash('A password reset email has been sent to your email address.')
+            else:
+                flash('There was an error sending the reset email. Please try again later.')
+        else:
+            flash('Email not found. Please register or try again.')
+        return redirect(url_for('login'))
+    return render_template('templates_reset_password_request')
+
+@app.route('/reset_password/<token>', methods=['GET', 'POST'])
+def reset_password(token):
+    if current_user.is_authenticated:
+        return redirect(url_for('dashboard'))
+    user = User.query.filter_by(reset_token=token).first()
+    if not user:
+        flash('Invalid or expired reset link.')
+        return redirect(url_for('login'))
+    if user.reset_token_expiration < datetime.utcnow():
+        flash('The reset link has expired.')
+        user.reset_token = None
+        user.reset_token_expiration = None
+        db.session.commit()
+        return redirect(url_for('login'))
+    if request.method == 'POST':
+        new_password = request.form['new_password']
+        confirm_password = request.form['confirm_password']
+        if not new_password or not confirm_password:
+            flash('All fields are required.')
+            return redirect(url_for('reset_password', token=token))
+        if new_password != confirm_password:
+            flash('New password and confirmation do not match.')
+            return redirect(url_for('reset_password', token=token))
+        if check_password_hash(user.password, new_password):
+            flash('New password must be different from the current password.')
+            return redirect(url_for('reset_password', token=token))
+        user.password = generate_password_hash(new_password)
+        user.reset_token = None
+        user.reset_token_expiration = None
+        db.session.commit()
+        flash('Your password has been reset successfully. Please log in.')
+        return redirect(url_for('login'))
+    return render_template('templates_reset_password', token=token)
 
 @app.route('/clear_expenses', methods=['POST'])
 @login_required
